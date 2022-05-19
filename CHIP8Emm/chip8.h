@@ -6,6 +6,9 @@ public:
 	void LoadROM(const char* filename);
 	void EmulateCycle();
 
+	chip8();
+	~chip8();
+
 private:
 	int8_t memory[4096];
 	int16_t programCounter;

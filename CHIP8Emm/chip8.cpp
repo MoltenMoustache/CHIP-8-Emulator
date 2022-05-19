@@ -44,7 +44,7 @@ chip8::chip8()
 }
 chip8::~chip8()
 {
-	delete[] memory;
+	//delete[] memory;
 }
 
 void chip8::LoadROM(const char* filename)
@@ -225,7 +225,7 @@ void chip8::OP_00EE()
 // Jump to location nnn
 void chip8::OP_1nnn()
 {
-	uint64_t address = opcode & 0x0FFFu;
+	uint16_t address = opcode & 0x0FFFu;
 	programCounter = address;
 }
 
@@ -409,7 +409,7 @@ void chip8::OP_Dxyn()
 	int y = registers[Vy] % 32;
 	registers[Vf] = 0;
 
-	for (long col = 0; col < height; col++)
+	for (int col = 0; col < height; col++)
 	{
 		int8_t pixel = memory[index + col];
 		// For each bit in the row
@@ -438,7 +438,7 @@ void chip8::OP_Ex9E()
 }
 
 // Skip next instruction if key with the value of Vx is not pressed.
-void chip8::OP_Ex9E()
+void chip8::OP_ExA1()
 {
 	// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
 	if (keys[Vx] == 1)
@@ -446,15 +446,50 @@ void chip8::OP_Ex9E()
 }
 
 // Set Vx = delay timer value.
-void chip8::OP_Ex9E()
+void chip8::OP_Fx07()
 {
 	// The value of DT is placed into Vx.
 	registers[Vx] = delayTimer;
 }
 
 // Wait for a key press, store the value of the key in Vx.
-void chip8::OP_Ex9E()
+void chip8::OP_Fx0A()
 {
 	// All execution stops until a key is pressed, then the value of that key is stored in Vx.
+}
+
+void chip8::OP_Fx15()
+{
+
+}
+
+void chip8::OP_Fx18()
+{
+
+}
+
+void chip8::OP_Fx1E()
+{
+
+}
+
+void chip8::OP_Fx29()
+{
+
+}
+
+void chip8::OP_Fx33()
+{
+
+}
+
+void chip8::OP_Fx55()
+{
+
+}
+
+void chip8::OP_Fx65()
+{
+
 }
 #pragma endregion Instructions
