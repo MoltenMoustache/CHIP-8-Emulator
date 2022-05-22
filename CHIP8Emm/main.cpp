@@ -5,7 +5,9 @@
 int main(int argc, char* args[])
 {
 	SDL_Window* window = NULL;
-	chip8* chip = NULL;
+	SDL_Renderer* renderer = NULL;
+	SDL_Texture* texture = NULL;
+	chip8* chip = new chip8();
 
 	printf("Intialising SDL...\n");
 	// SDL returns 0 if successfully initialised
@@ -23,10 +25,26 @@ int main(int argc, char* args[])
 		return -2;
 	}
 
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
+
+	chip->LoadROM("C:/Users/Josh/Downloads/IBM Logo.ch8");
+
 	// Emulator Loop
 	while (true)
 	{
 		chip->EmulateCycle();
+
+		SDL_UpdateTexture(texture, nullptr, chip->gfx, sizeof(chip->gfx[0]) * 64);
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+		SDL_RenderPresent(renderer);
+
+		SDL_Event e;
+		while (SDL_PollEvent(&e))
+		{
+			if (e.type == SDL_QUIT) exit(0);
+		}
 	}
 
 	printf("Quitting SDL...\n");

@@ -1,5 +1,4 @@
 #include "chip8.h"
-#include <fstream>
 
 #define Vx (opcode & 0x0F00u) >> 8u
 #define Vy (opcode & 0x00F0u) >> 4u
@@ -65,6 +64,11 @@ void chip8::LoadROM(const char* filename)
 		for (long i = 0; i < size; i++)
 			memory[START_ADDRESS + i] = buffer[i];
 
+
+		opcode = memory[programCounter] << 8u | memory[programCounter + 1];
+		std::cout << (int_to_hex(opcode));
+		std::cout << std::endl;
+
 		delete[] buffer;
 	}
 }
@@ -78,7 +82,7 @@ void chip8::EmulateCycle()
 void chip8::Fetch()
 {
 	// Read the current instruction, each instruction is two successive bytes.
-	opcode = (memory[programCounter] << 8u) | memory[programCounter + 1];
+	opcode = memory[programCounter] << 8u | memory[programCounter + 1];
 
 	// Increment program counter by 2
 	programCounter += 2;
@@ -86,9 +90,24 @@ void chip8::Fetch()
 
 void chip8::DecodeAndExecute()
 {
+	std::cout << (int_to_hex(opcode & 0xF000));
+	std::cout << std::endl;
+
 	switch (opcode & 0xF000u)
 	{
 	case 0x0000u:
+		switch (opcode & 0x00FFu)
+		{
+		case 0x00E0:
+			OP_00E0();
+			break;
+		case 0x00EE:
+			OP_00EE();
+			break;
+		default:
+			OP_0nnn();
+			break;
+		}
 		break;
 	case 0x1000u:
 		OP_1nnn();
@@ -408,18 +427,19 @@ void chip8::OP_Dxyn()
 	int x = registers[Vx] % 64;
 	int y = registers[Vy] % 32;
 	registers[Vf] = 0;
+	int8_t h = opcode & 0x000Fu;
 
-	for (int col = 0; col < height; col++)
+	for (int col = 0; col < h; col++)
 	{
 		int8_t pixel = memory[index + col];
 		// For each bit in the row
 		for (int row = 0; row < 8; row++)
 		{
 			// Pixel is on
-			if ((pixel & 0x1000u >> row) == 1)
+			if ((pixel & (0x80 >> row)) != 0)
 			{
 				// Pixel at x,y is on
-				if (gfx[x + row + ((y + col) * 64)] == 1)
+				if (gfx[(x + row + ((y + col) * 64))] == 1)
 					registers[Vf] = 1;
 
 				// XOR the result
@@ -456,40 +476,88 @@ void chip8::OP_Fx07()
 void chip8::OP_Fx0A()
 {
 	// All execution stops until a key is pressed, then the value of that key is stored in Vx.
+	bool inputDetected = false;
+	for (int i = 0; i < sizeof(keys); i++)
+	{
+		if (keys[i])
+		{
+			registers[Vx] = i;
+			inputDetected = true;
+		}
+	}
+
+	if (!inputDetected)
+		programCounter -= 2;
 }
 
+// Set delay timer = Vx.
 void chip8::OP_Fx15()
 {
-
+	// DT is set equal to the value of Vx.
+	delayTimer = registers[Vx];
 }
 
+// Set sound timer = Vx.
 void chip8::OP_Fx18()
 {
-
+	// ST is set equal to the value of Vx.
+	soundTimer = registers[Vx];
 }
 
+// Set I = I + Vx.
 void chip8::OP_Fx1E()
 {
-
+	// The values of I and Vx are added, and the results are stored in I.
+	registers[index] = registers[index] + registers[Vx];
 }
 
+// Set I = location of sprite for digit Vx.
 void chip8::OP_Fx29()
 {
-
+	// The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
+	// See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+	index = FONTSET_START + (5 * registers[Vx]);
 }
 
+// Store BCD representation of Vx in memory locations I, I+1, and I+2.
 void chip8::OP_Fx33()
 {
+	// The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+	int8_t val = registers[Vx];
 
+	memory[index] = val % 10;				// Hundreds
+	memory[index + 1] = (val / 10) % 10;	// Tens
+	memory[index + 2] = (val / 100) % 10;	// Ones
 }
 
+// Store registers V0 through Vx in memory starting at location I.
 void chip8::OP_Fx55()
 {
+	// The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+	for (int i = 0; i < Vx + 1; i++)
+	{
+		memory[index + i] = registers[i];
+	}
 
 }
 
+// Read registers V0 through Vx from memory starting at location I.
 void chip8::OP_Fx65()
 {
-
+	// The interpreter reads values from memory starting at location I into registers V0 through Vx.
+	for (int i = 0; i < Vx + 1; i++)
+	{
+		registers[i] = memory[index + i];
+	}
 }
 #pragma endregion Instructions
+
+template< typename T >
+std::string chip8::int_to_hex(T i)
+{
+	std::stringstream stream;
+	stream << "0x"
+		<< std::setfill('0') << std::setw(sizeof(T) * 2)
+		<< std::hex << i;
+	return stream.str();
+}

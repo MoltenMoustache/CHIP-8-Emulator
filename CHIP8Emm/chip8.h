@@ -1,19 +1,25 @@
 #include <cstdint>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <iostream>
 
 class chip8
 {
 public:
+	int8_t gfx[64 * 32];
+
 	void LoadROM(const char* filename);
 	void EmulateCycle();
 
 	chip8();
 	~chip8();
 
+
 private:
 	int8_t memory[4096];
 	int16_t programCounter;
 
-	int32_t gfx[64 * 32];
 	int16_t index;
 	
 	int16_t stack[16];
@@ -66,5 +72,8 @@ private:
 	void OP_Fx33();
 	void OP_Fx55();
 	void OP_Fx65();
+
+	template< typename T >
+	std::string int_to_hex(T i);
 };
 
